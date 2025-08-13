@@ -1,0 +1,144 @@
+# 1. ServiceAccount with IAM role for Secrets Manager access
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tasky-service-account
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::442042553076:role/eks-secrets-manager-role-gF4aG3Ae
+---
+# 2. SecretProviderClass to define which secrets to mount
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: tasky-secrets-provider
+  namespace: default
+spec:
+  provider: aws
+  parameters:
+    objects: |
+      - objectName: "tasky/database/credentials"
+        objectType: "secretsmanager"
+        jmesPath:
+          - path: "MONGODB_URI"
+            objectAlias: "mongodb-uri"
+          - path: "SECRET_KEY"
+            objectAlias: "secret-key"
+  secretObjects:
+  - secretName: tasky-secrets
+    type: Opaque
+    data:
+    - objectName: "mongodb-uri"
+      key: "MONGODB_URI"
+    - objectName: "secret-key"
+      key: "SECRET_KEY"
+---
+# 3. Deployment for Tasky application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasky-deployment
+  namespace: default
+  labels:
+    app: tasky
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tasky
+  template:
+    metadata:
+      labels:
+        app: tasky
+    spec:
+      serviceAccountName: tasky-service-account
+      containers:
+      - name: tasky
+        image: IMAGE_PLACEHOLDER  
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: tasky-secrets
+              key: MONGODB_URI
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: tasky-secrets
+              key: SECRET_KEY
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+      volumes:
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "tasky-secrets-provider"
+---
+# 4. Service to expose the application
+apiVersion: v1
+kind: Service
+metadata:
+  name: tasky-service
+  namespace: default
+  labels:
+    app: tasky
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: tasky
+---
+# 5. HorizontalPodAutoscaler for auto-scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tasky-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tasky-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
