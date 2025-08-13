@@ -2,24 +2,25 @@ package main
 
 import (
 	"net/http"
+	"time"  // Add this import
 	controller "github.com/jeffthorne/tasky/controllers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
-
-func index(c *gin.Context) {
-	// Add version info that's visible
-	data := gin.H{
-		"AppVersion": "v2.0-rolling-update",
-		"DeployTime": time.Now().Format("2006-01-02 15:04:05 MST"),
-		"Environment": "Production EKS",
-	}
-	c.HTML(http.StatusOK, "login.html", data)
-}
-
 func index(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", nil)
+}
+
+// NEW: Add this function
+func healthInfo(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status": "healthy",
+		"version": "v2.0-rolling-update", 
+		"timestamp": time.Now().Unix(),
+		"environment": "EKS Production",
+		"message": "Rolling update successful!",
+	})
 }
 
 func main() {
@@ -30,12 +31,20 @@ func main() {
 	router.Static("/assets", "./assets")
 
 	router.GET("/", index)
+	router.GET("/health-info", healthInfo)  // NEW: Add this line
 	router.GET("/todos/:userid", controller.GetTodos)
 	router.GET("/todo/:id", controller.GetTodo)
 	router.POST("/todo/:userid", controller.AddTodo)
 	router.DELETE("/todo/:userid/:id", controller.DeleteTodo)
 	router.DELETE("/todos/:userid", controller.ClearAll)
 	router.PUT("/todo", controller.UpdateTodo)
+
+	router.POST("/signup", controller.SignUp)
+	router.POST("/login", controller.Login)
+	router.GET("/todo", controller.Todo)
+
+	router.Run(":8080")
+}
 
 
 	router.POST("/signup", controller.SignUp)
