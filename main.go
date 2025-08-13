@@ -12,16 +12,6 @@ func index(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", nil)
 }
 
-func healthInfo(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status": "healthy",
-		"version": "v2.0-rolling-update", 
-		"timestamp": time.Now().Unix(),
-		"environment": "EKS Production",
-		"message": "Rolling update successful!",
-	})
-}
-
 func main() {
 	godotenv.Overload()
 	
@@ -42,4 +32,5 @@ func main() {
 	router.GET("/todo", controller.Todo)
 
 	router.Run(":8080")
+
 }
