@@ -7,6 +7,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
+
+func index(c *gin.Context) {
+	// Add version info that's visible
+	data := gin.H{
+		"AppVersion": "v2.0-rolling-update",
+		"DeployTime": time.Now().Format("2006-01-02 15:04:05 MST"),
+		"Environment": "Production EKS",
+	}
+	c.HTML(http.StatusOK, "login.html", data)
+}
+
 func index(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", nil)
 }
