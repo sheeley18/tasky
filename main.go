@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"time"
 	controller "github.com/jeffthorne/tasky/controllers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -20,7 +19,6 @@ func main() {
 	router.Static("/assets", "./assets")
 
 	router.GET("/", index)
-	router.GET("/health-info", healthInfo)
 	router.GET("/todos/:userid", controller.GetTodos)
 	router.GET("/todo/:id", controller.GetTodo)
 	router.POST("/todo/:userid", controller.AddTodo)
@@ -32,5 +30,4 @@ func main() {
 	router.GET("/todo", controller.Todo)
 
 	router.Run(":8080")
-
 }
