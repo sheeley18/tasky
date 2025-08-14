@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Tasky - Sign Up Success</title>
+	<link rel="stylesheet" type="text/css" href="assets/css/login.css">
+	<link href="https://fonts.googleapis.com/css2?family=Jost:wght@500&display=swap" rel="stylesheet">
+	<style>
+		.success-container {
+			width: 350px;
+			height: 350px;
+			background: #fff;
+			border-radius: 60px 5px 60px 5px;
+			position: relative;
+			padding: 0px;
+			box-shadow: 5px 5px 5px #000;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+		}
+		
+		.success-icon {
+			width: 80px;
+			height: 80px;
+			background: #28a745;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 30px;
+			position: relative;
+		}
+		
+		.success-icon::after {
+			content: '✓';
+			color: white;
+			font-size: 40px;
+			font-weight: bold;
+		}
+		
+		.success-title {
+			color: #28a745;
+			font-size: 32px;
+			font-weight: 500;
+			margin: 0 0 15px 0;
+			font-family: 'Jost', sans-serif;
+		}
+		
+		.success-message {
+			color: #333;
+			font-size: 16px;
+			margin: 0 0 20px 0;
+			font-family: 'Jost', sans-serif;
+			line-height: 1.4;
+		}
+		
+		.user-info {
+			color: #666;
+			font-size: 14px;
+			margin: 0 0 30px 0;
+			font-family: 'Jost', sans-serif;
+		}
+		
+		.continue-btn {
+			width: 60%;
+			height: 40px;
+			margin: 10px auto;
+			color: #fff;
+			background: #28a745;
+			border-radius: 25px;
+			font-weight: bold;
+			border: 0;
+			outline: none;
+			cursor: pointer;
+			font-family: 'Jost', sans-serif;
+			transition: .2s ease-in;
+		}
+		
+		.continue-btn:hover {
+			background: #218838;
+		}
+		
+		.redirect-text {
+			color: #999;
+			font-size: 12px;
+			margin-top: 15px;
+			font-family: 'Jost', sans-serif;
+		}
+	</style>
+</head>
+<body>
+	<div class="main">
+		<div class="success-container">
+			<div class="success-icon"></div>
+			<h2 class="success-title">Success!</h2>
+			<p class="success-message">Your account has been created successfully.</p>
+			<p class="user-info">Welcome, <span id="username-display">User</span>!</p>
+			<button class="continue-btn" onclick="redirectToTodos()">Continue to Tasky</button>
+			<p class="redirect-text">You will be redirected automatically in <span id="countdown">5</span> seconds...</p>
+		</div>
+	</div>
+	
+	<script>
+		// Get username from cookie or URL parameter
+		function getUsername() {
+			const cookies = document.cookie.split(';');
+			for (let cookie of cookies) {
+				const [name, value] = cookie.trim().split('=');
+				if (name === 'username') {
+					return decodeURIComponent(value);
+				}
+			}
+			return 'User';
+		}
+		
+		// Display the username
+		document.getElementById('username-display').textContent = getUsername();
+		
+		// Redirect function
+		function redirectToTodos() {
+			window.location.href = '/todo';
+		}
+		
+		// Auto redirect countdown
+		let countdown = 5;
+		const countdownElement = document.getElementById('countdown');
+		
+		const countdownInterval = setInterval(() => {
+			countdown--;
+			countdownElement.textContent = countdown;
+			
+			if (countdown <= 0) {
+				clearInterval(countdownInterval);
+				redirectToTodos();
+			}
+		}, 1000);
+	</script>
+</body>
+</html>
