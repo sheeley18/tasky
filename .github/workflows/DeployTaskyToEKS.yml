@@ -54,6 +54,73 @@ jobs:
         # Output image URI for later steps
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         
+    - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        id: sbom
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM to repository
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.spdx.json
+          retention-days: 90
+
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v3
+        id: scan
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          fail-build: false
+          severity-cutoff: critical
+          output-format: sarif
+          sbom: sbom.spdx.json
+        continue-on-error: true
+
+      - name: Upload vulnerability scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: "Container Scan"
+
+      - name: Upload SBOM as release asset
+        if: github.ref == 'refs/heads/main' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sbom.spdx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate vulnerability report summary
+        if: always()
+        run: |
+          echo "## 🔍 Container Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Run Grype again for human-readable output
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            anchore/grype:latest ${{ steps.build-image.outputs.image }} \
+            -o table --only-fixed >> grype_report.txt 2>/dev/null || echo "No fixable vulnerabilities found" >> grype_report.txt
+          
+          echo "### Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ steps.build-image.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### SBOM (Software Bill of Materials)" >> $GITHUB_STEP_SUMMARY
+          echo "SBOM generated in SPDX format" >> $GITHUB_STEP_SUMMARY
+          echo "Available as build artifact: \`sbom-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Vulnerability Details" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -20 grype_report.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Full security scan results available in the Security tab**" >> $GITHUB_STEP_SUMMARY
+
     - name: Update kubeconfig
       run: |
         aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
