@@ -218,7 +218,7 @@ jobs:
     - name: Refresh Load Balancer Service
       run: |
         # Apply service configuration to refresh LB cache
-        kubectl apply -f tasky-service.yaml
+        kubectl apply -f tasky-service-lb.yaml
         
         # Wait a moment for service to update
         sleep 10
