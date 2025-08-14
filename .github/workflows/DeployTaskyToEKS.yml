@@ -69,6 +69,34 @@ jobs:
         name: sbom-${{ github.sha }}
         path: sbom.spdx.json
         retention-days: 90
+        
+    - name: Commit SBOM to repository
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Create sbom directory if it doesn't exist
+        mkdir -p sbom
+          
+        # Copy SBOM with timestamp and commit hash
+        cp sbom.spdx.json sbom/sbom-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}.spdx.json
+        cp sbom.spdx.json sbom/sbom-latest.spdx.json
+          
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+          
+        # Add and commit if there are changes
+        git add sbom/
+        if git diff --staged --quiet; then
+          echo "No SBOM changes to commit"
+        else
+          git commit -m "chore: update SBOM for ${{ github.sha }}
+            
+          - Generated SBOM for container image
+          - Commit: ${{ github.sha }}
+          - Workflow: ${{ github.workflow }}
+          - Run: ${{ github.run_number }}"
+          git push
+        fi
 
     - name: Run Grype vulnerability scanner
       uses: anchore/scan-action@v3
@@ -91,7 +119,6 @@ jobs:
       if: always() && hashFiles('${{ steps.scan.outputs.sarif }}') == ''
       run: |
         echo "No SARIF file generated - likely no vulnerabilities found"
-        echo "This is actually good news! 🎉"
 
     - name: Upload SBOM as release asset
       if: github.ref == 'refs/heads/main' && startsWith(github.ref, 'refs/tags/')
@@ -104,7 +131,7 @@ jobs:
     - name: Generate vulnerability report summary
       if: always()
       run: |
-        echo "## 🔍 Container Security Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "## Container Security Scan Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
           
     - name: Generate vulnerability report summary
