@@ -78,14 +78,15 @@ jobs:
         fail-build: false
         severity-cutoff: critical
         output-format: sarif
+        sarif-file: vulnerabilities.sarif
         sbom: sbom.spdx.json
       continue-on-error: true
 
     - name: Upload vulnerability scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
+      if: always() && hashFiles('vulnerabilities.sarif') != ''
       with:
-        sarif_file: ${{ steps.scan.outputs.sarif }}
+        sarif_file: vulnerabilities.sarif
         category: "Container Scan"
 
     - name: Upload SBOM as release asset
