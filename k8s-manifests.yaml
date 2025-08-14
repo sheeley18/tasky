@@ -157,13 +157,11 @@ spec:
   - Ingress
   - Egress
   ingress:
-  # Allow traffic from LoadBalancer/Service
   - from:
     - namespaceSelector: {}
     ports:
     - protocol: TCP
       port: 8080
-  # Allow traffic from other tasky pods (if you scale horizontally)
   - from:
     - podSelector:
         matchLabels:
@@ -172,26 +170,23 @@ spec:
     - protocol: TCP
       port: 8080
   egress:
-  # Allow DNS resolution
   - to: []
     ports:
     - protocol: UDP
       port: 53
     - protocol: TCP
       port: 53
-  # Allow HTTPS for external dependencies (if needed)
   - to: []
     ports:
     - protocol: TCP
       port: 443
-  # Allow MongoDB connection (adjust as needed)
   - to: []
     ports:
     - protocol: TCP
       port: 27017
-  # Allow HTTP for external APIs (if needed)
   - to: []
     ports:
     - protocol: TCP
       port: 80
+
 
