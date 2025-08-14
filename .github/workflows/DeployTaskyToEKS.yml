@@ -54,6 +54,25 @@ jobs:
         # Output image URI for later steps
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
         
+    - name: Run Checkov IaC security scan
+      uses: bridgecrewio/checkov-action@master
+      id: checkov
+      with:
+        directory: .
+        framework: dockerfile,kubernetes
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+        download_external_modules: true
+        quiet: true
+        soft_fail: true
+
+    - name: Upload Checkov scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && hashFiles('checkov-results.sarif') != ''
+      with:
+        sarif_file: checkov-results.sarif
+        category: "IaC Security Scan"
+        
     - name: Generate SBOM with Syft
       uses: anchore/sbom-action@v0
       id: sbom
